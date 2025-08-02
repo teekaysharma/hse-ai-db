@@ -1,1 +1,13 @@
-
+name: Regulation Update Tracker
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Mondays
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check OSHA updates
+        run: |
+          echo "Current last modified:"
+          curl -sI https://www.osha.gov/laws-regs | grep -i last-modified
