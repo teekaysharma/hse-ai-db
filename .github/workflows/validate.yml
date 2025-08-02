@@ -14,112 +14,138 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install jsonschema
-          pip install pyyaml
-          pip install requests
+          pip install jsonschema pyyaml requests
+          echo "Dependencies installed"
 
-      - name: Validate Regulations
+      - name: Validate JSON Structure
         run: |
-          echo "Validating all JSON files..."
+          echo "Validating all JSON files against schema..."
           python -c "
           import glob, json, jsonschema, sys
           
-          # Load schema
-          try:
-              schema = json.load(open('data/schemas/regulation.schema.json'))
-          except Exception as e:
-              print(f'❌ Schema load failed: {str(e)}')
-              sys.exit(1)
+          # Enhanced schema definition
+          schema = {
+            'type': 'object',
+            'required': ['regulations', 'hazard_library'],
+            'properties': {
+              'regulations': {
+                'type': 'object',
+                'patternProperties': {
+                  '^[A-Za-z_]+$': {  # Region names
+                    'type': 'object',
+                    'patternProperties': {
+                      '^[A-Za-z_]+$': {  # Country/Authority names
+                        'type': 'object',
+                        'required': ['source'],
+                        'properties': {
+                          'source': {'type': 'string', 'format': 'uri'},
+                          'standards': {
+                            'type': 'array',
+                            'items': {
+                              'required': ['id', 'title'],
+                              'properties': {
+                                'id': {'type': 'string'},
+                                'url': {'type': 'string', 'format': 'uri'}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              'hazard_library': {
+                'type': 'array',
+                'items': {
+                  'required': ['id', 'controls', 'severity', 'likelihood'],
+                  'properties': {
+                    'severity': {'type': 'number', 'minimum': 1, 'maximum': 5},
+                    'likelihood': {'type': 'number', 'minimum': 1, 'maximum': 5}
+                  }
+                }
+              }
+            }
+          }
           
-          # Check all JSON files
           failed = False
-          for json_file in glob.glob('data/**/*.json', recursive=True):
+          for json_file in glob.glob('docs/hse_knowledge.json', recursive=True):
               try:
-                  data = json.load(open(json_file))
+                  with open(json_file) as f:
+                      data = json.load(f)
                   jsonschema.validate(instance=data, schema=schema)
-                  print(f'✅ {json_file} passed validation')
-              except jsonschema.ValidationError as ve:
-                  print(f'❌ {json_file} failed:\n{ve.message}')
-                  failed = True
-              except json.JSONDecodeError as je:
-                  print(f'❌ {json_file} invalid JSON:\n{str(je)}')
+                  print(f'✅ {json_file} passed schema validation')
+              except Exception as e:
+                  print(f'❌ {json_file} failed validation:\n{str(e)}')
                   failed = True
           
           if failed:
               sys.exit(1)
+          "
+
+      - name: Validate Hazard Risk Scores
+        run: |
+          echo "Verifying hazard risk scores..."
+          python -c "
+          import json, sys
+          with open('docs/hse_knowledge.json') as f:
+              data = json.load(f)
+          
+          failed = False
+          for hazard in data.get('hazard_library', []):
+              if not (1 <= hazard['severity'] <= 5):
+                  print(f'❌ Hazard {hazard["id"]}: severity {hazard["severity"]} out of range (1-5)')
+                  failed = True
+              if not (1 <= hazard['likelihood'] <= 5):
+                  print(f'❌ Hazard {hazard["id"]}: likelihood {hazard["likelihood"]} out of range (1-5)')
+                  failed = True
+          
+          if failed:
+              sys.exit(1)
+          print('✅ All hazard scores valid')
           "
 
       - name: Validate URLs
         run: |
-          echo "Checking all URLs in JSON files..."
+          echo "Checking URL accessibility..."
           python -c "
-          import requests, json, glob, sys
+          import requests, json, sys
           from urllib.parse import urlparse
           
+          with open('docs/hse_knowledge.json') as f:
+              data = json.load(f)
+          
           failed = False
-          for json_file in glob.glob('data/**/*.json', recursive=True):
+          def check_url(url):
+              if not urlparse(url).scheme:
+                  print(f'⚠️ URL missing scheme (http/https): {url}')
+                  return False
               try:
-                  with open(json_file) as f:
-                      data = json.load(f)
-                      
-                  # Check both top-level and nested URLs
-                  def check_url(url):
-                      if not urlparse(url).scheme:
-                          print(f'⚠️ {json_file}: URL missing scheme (http/https)')
-                          return False
-                      try:
-                          r = requests.head(url, timeout=5, allow_redirects=True)
-                          if r.status_code >= 400:
-                              print(f'❌ {json_file}: URL {url} returned HTTP {r.status_code}')
-                              return False
-                          return True
-                      except Exception as e:
-                          print(f'❌ {json_file}: URL {url} failed - {str(e)}')
-                          return False
-                  
-                  # Check standard 'url' fields
-                  if isinstance(data, dict):
-                      for key, value in data.items():
-                          if 'url' in key.lower() and isinstance(value, str):
-                              if not check_url(value):
-                                  failed = True
-                  
-                  # Check URLs in arrays
-                  if isinstance(data, list):
-                      for item in data:
-                          if isinstance(item, dict) and 'url' in item:
-                              if not check_url(item['url']):
-                                  failed = True
-                                  
+                  r = requests.head(url, timeout=10, allow_redirects=True)
+                  if r.status_code >= 400:
+                      print(f'❌ URL returned HTTP {r.status_code}: {url}')
+                      return False
+                  return True
               except Exception as e:
-                  print(f'❌ Error processing {json_file}: {str(e)}')
-                  failed = True
+                  print(f'❌ URL check failed: {url}\nError: {str(e)}')
+                  return False
           
-          if failed:
-              sys.exit(1)
-          "
-
-      - name: Verify Hazard Files
-        if: always()
-        run: |
-          echo "Checking for required hazard fields..."
-          python -c "
-          required_hazard_fields = ['id', 'controls', 'severity']
-          import glob, json, sys
-          
-          failed = False
-          for hazard_file in glob.glob('data/hazards/*.json'):
-              try:
-                  data = json.load(open(hazard_file))
-                  if not all(field in data[0] for field in required_hazard_fields):
-                      print(f'❌ {hazard_file} missing required fields')
+          # Check regulation sources
+          for region in data['regulations'].values():
+              for country in region.values():
+                  if not check_url(country['source']):
                       failed = True
-                  else:
-                      print(f'✅ {hazard_file} has all required fields')
-              except Exception as e:
-                  print(f'❌ {hazard_file} error: {str(e)}')
-                  failed = True
+                  for standard in country.get('standards', []):
+                      if 'url' in standard and not check_url(standard['url']):
+                          failed = True
+          
+          # Check hazard references
+          for hazard in data['hazard_library']:
+              for ref in hazard.get('references', []):
+                  if ref.startswith(('http://', 'https://')) and not check_url(ref):
+                      failed = True
           
           if failed:
               sys.exit(1)
+          print('✅ All URLs accessible')
           "
