@@ -1,1 +1,16 @@
-
+name: Validate JSON
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Schema
+        run: |
+          pip install jsonschema
+          python -c "
+          import json, jsonschema
+          schema = json.load(open('data/schemas/regulation.schema.json'))
+          data = json.load(open('data/regulations/usa/osha.json'))
+          jsonschema.validate(data, schema)
+          "
