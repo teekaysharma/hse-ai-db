@@ -15,7 +15,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install jsonschema
-          pip install pyyaml  # For optional YAML validation
+          pip install pyyaml
+          pip install requests
 
       - name: Validate Regulations
         run: |
@@ -47,7 +48,7 @@ jobs:
           if failed:
               sys.exit(1)
           "
- # ======= NEW URL VALIDATION STEP ======= #
+
       - name: Validate URLs
         run: |
           echo "Checking all URLs in JSON files..."
@@ -97,9 +98,9 @@ jobs:
           if failed:
               sys.exit(1)
           "
-      # ======= END OF NEW STEP ======= #
+
       - name: Verify Hazard Files
-        if: always()  # Runs even if previous step fails
+        if: always()
         run: |
           echo "Checking for required hazard fields..."
           python -c "
