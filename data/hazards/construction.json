@@ -1,0 +1,8 @@
+[
+  {
+    "id": "fall_protection",
+    "controls": ["Guardrails", "Harness systems"],
+    "severity": 5,
+    "likelihood": 3
+  }
+]
