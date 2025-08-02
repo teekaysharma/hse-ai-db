@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global HSE Knowledge Base</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,45 +23,50 @@
             border-radius: 5px;
             margin-bottom: 30px;
         }
-        .region-card {
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-export {
+            background-color: #27ae60;
+        }
+        .btn-export:hover {
+            background-color: #219653;
+        }
+        .risk-matrix {
+            width: 100%;
+            margin: 30px 0;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .feedback-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 40px;
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
-        }
-        .country-section {
-            margin-left: 20px;
-            padding: 10px;
-            border-left: 3px solid #3498db;
-        }
-        .hazard-card {
-            background-color: #e8f4fc;
-            border-left: 4px solid #e74c3c;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .risk-score {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        .high-risk { background-color: #e74c3c; color: white; }
-        .medium-risk { background-color: #f39c12; color: white; }
-        .low-risk { background-color: #2ecc71; color: white; }
-        .search-box {
-            padding: 10px;
-            width: 100%;
-            margin-bottom: 20px;
-            border: 2px solid #3498db;
-            border-radius: 5px;
-        }
-        footer {
-            margin-top: 40px;
-            text-align: center;
-            color: #7f8c8d;
         }
     </style>
 </head>
@@ -66,77 +74,46 @@
     <header>
         <h1>Global HSE Knowledge Base</h1>
         <p>Version: <span id="version"></span> | Last Updated: <span id="last-updated"></span></p>
-        <input type="text" id="search" class="search-box" placeholder="Search regulations, hazards...">
     </header>
 
+    <div class="toolbar">
+        <input type="text" id="search" class="search-box" placeholder="Search regulations, hazards...">
+        <button class="btn" id="show-risk-matrix">Show Risk Matrix</button>
+        <button class="btn btn-export" id="export-pdf">Export PDF</button>
+        <button class="btn btn-export" id="export-csv">Export CSV</button>
+        <button class="btn" id="feedback-btn">Give Feedback</button>
+    </div>
+
+    <div id="risk-matrix-container" class="risk-matrix" style="display: none;">
+        <h2>Risk Assessment Matrix</h2>
+        <canvas id="riskMatrixChart"></canvas>
+    </div>
+
     <div id="content">
-        <!-- Content will be loaded dynamically -->
         <div id="loading">Loading HSE data...</div>
     </div>
 
-    <footer>
-        <p>Data sourced from official government regulations and standards</p>
-    </footer>
+    <div id="feedback-form" class="feedback-form">
+        <h2>Submit Feedback</h2>
+        <textarea id="feedback-text" rows="5" placeholder="Your suggestions or issues..."></textarea>
+        <button class="btn" id="submit-feedback">Submit</button>
+        <button class="btn" id="cancel-feedback">Cancel</button>
+    </div>
 
     <script>
+        // Global variables
+        let hseData = {};
+        const { jsPDF } = window.jspdf;
+
         // Fetch and display the HSE knowledge base
         fetch('hse_knowledge.json')
             .then(response => response.json())
             .then(data => {
+                hseData = data;
                 document.getElementById('version').textContent = data.metadata.version;
                 document.getElementById('last-updated').textContent = data.metadata.update_policy;
-                
-                let html = '';
-                
-                // Display Regulations by Region
-                html += '<h2>Regulations by Region</h2>';
-                for (const [regionName, regionData] of Object.entries(data.regulations)) {
-                    html += `<div class="region-card">
-                        <h3>${formatTitle(regionName)}</h3>`;
-                    
-                    for (const [countryName, countryData] of Object.entries(regionData)) {
-                        html += `<div class="country-section">
-                            <h4>${formatTitle(countryName)}: ${Object.keys(countryData)[0]}</h4>
-                            <p>Source: <a href="${countryData.source}" target="_blank">${countryData.source}</a></p>`;
-                        
-                        if (countryData.standards) {
-                            html += '<ul>';
-                            countryData.standards.forEach(standard => {
-                                html += `<li>
-                                    <strong>${standard.id}</strong>: ${standard.title}
-                                    ${standard.url ? `(<a href="${standard.url}" target="_blank">source</a>)` : ''}
-                                </li>`;
-                            });
-                            html += '</ul>';
-                        }
-                        
-                        html += '</div>'; // Close country-section
-                    }
-                    
-                    html += '</div>'; // Close region-card
-                }
-                
-                // Display Hazard Library
-                html += '<h2>Hazard Library</h2>';
-                data.hazard_library.forEach(hazard => {
-                    const riskLevel = hazard.severity * hazard.likelihood;
-                    let riskClass = 'low-risk';
-                    if (riskLevel > 10) riskClass = 'high-risk';
-                    else if (riskLevel > 5) riskClass = 'medium-risk';
-                    
-                    html += `<div class="hazard-card">
-                        <h3>${hazard.id}: ${hazard.title}</h3>
-                        <div>
-                            <span class="risk-score ${riskClass}">Risk: ${riskLevel}</span>
-                            <span>Severity: ${hazard.severity}/5 | Likelihood: ${hazard.likelihood}/5</span>
-                        </div>
-                        <p><strong>Controls:</strong> ${hazard.controls.join(', ')}</p>
-                        <p><strong>References:</strong> ${hazard.references.join(', ')}</p>
-                    </div>`;
-                });
-                
-                document.getElementById('content').innerHTML = html;
-                setupSearch();
+                renderContent(data);
+                setupEventListeners();
             })
             .catch(error => {
                 document.getElementById('content').innerHTML = `
@@ -146,14 +123,65 @@
                         <p>Please check the JSON file and try again.</p>
                     </div>`;
             });
-        
-        function formatTitle(str) {
-            return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+        function renderContent(data) {
+            let html = '';
+            
+            // Display Regulations by Region
+            html += '<h2>Regulations by Region</h2>';
+            for (const [regionName, regionData] of Object.entries(data.regulations)) {
+                html += `<div class="region-card">
+                    <h3>${formatTitle(regionName)}</h3>`;
+                
+                for (const [countryName, countryData] of Object.entries(regionData)) {
+                    html += `<div class="country-section">
+                        <h4>${formatTitle(countryName)}: ${Object.keys(countryData)[0]}</h4>
+                        <p>Source: <a href="${countryData.source}" target="_blank">${countryData.source}</a></p>`;
+                    
+                    if (countryData.standards) {
+                        html += '<ul>';
+                        countryData.standards.forEach(standard => {
+                            html += `<li>
+                                <strong>${standard.id}</strong>: ${standard.title}
+                                ${standard.url ? `(<a href="${standard.url}" target="_blank">source</a>)` : ''}
+                            </li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            }
+            
+            // Display Hazard Library
+            html += '<h2>Hazard Library</h2>';
+            data.hazard_library.forEach(hazard => {
+                const riskLevel = hazard.severity * hazard.likelihood;
+                let riskClass = 'low-risk';
+                if (riskLevel > 10) riskClass = 'high-risk';
+                else if (riskLevel > 5) riskClass = 'medium-risk';
+                
+                html += `<div class="hazard-card">
+                    <h3>${hazard.id}: ${hazard.title}</h3>
+                    <div>
+                        <span class="risk-score ${riskClass}">Risk: ${riskLevel}</span>
+                        <span>Severity: ${hazard.severity}/5 | Likelihood: ${hazard.likelihood}/5</span>
+                    </div>
+                    <p><strong>Controls:</strong> ${hazard.controls.join(', ')}</p>
+                    <p><strong>References:</strong> ${hazard.references.join(', ')}</p>
+                </div>`;
+            });
+            
+            document.getElementById('content').innerHTML = html;
+            setupSearch();
+            renderRiskMatrix(data.hazard_library);
         }
-        
-        function setupSearch() {
-            const searchBox = document.getElementById('search');
-            searchBox.addEventListener('input', function() {
+
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('search').addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase();
                 const cards = document.querySelectorAll('.region-card, .hazard-card');
                 
@@ -162,6 +190,170 @@
                     card.style.display = text.includes(searchTerm) ? 'block' : 'none';
                 });
             });
+
+            // Risk matrix toggle
+            document.getElementById('show-risk-matrix').addEventListener('click', function() {
+                const container = document.getElementById('risk-matrix-container');
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Export PDF
+            document.getElementById('export-pdf').addEventListener('click', exportToPDF);
+
+            // Export CSV
+            document.getElementById('export-csv').addEventListener('click', exportToCSV);
+
+            // Feedback form
+            document.getElementById('feedback-btn').addEventListener('click', function() {
+                document.getElementById('feedback-form').style.display = 'block';
+            });
+
+            document.getElementById('cancel-feedback').addEventListener('click', function() {
+                document.getElementById('feedback-form').style.display = 'none';
+            });
+
+            document.getElementById('submit-feedback').addEventListener('click', submitFeedback);
+        }
+
+        function renderRiskMatrix(hazards) {
+            const ctx = document.getElementById('riskMatrixChart').getContext('2d');
+            
+            // Prepare data for matrix
+            const riskData = Array(5).fill().map(() => Array(5).fill(0));
+            hazards.forEach(hazard => {
+                const severity = hazard.severity - 1;
+                const likelihood = hazard.likelihood - 1;
+                riskData[severity][likelihood]++;
+            });
+
+            new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: hazards.map(hazard => ({
+                        label: hazard.id,
+                        data: [{
+                            x: hazard.likelihood,
+                            y: hazard.severity,
+                            r: 10
+                        }],
+                        backgroundColor: getRiskColor(hazard.severity * hazard.likelihood)
+                    }))
+                },
+                options: {
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Likelihood (1-5)' },
+                            min: 0.5,
+                            max: 5.5
+                        },
+                        y: {
+                            title: { display: true, text: 'Severity (1-5)' },
+                            min: 0.5,
+                            max: 5.5
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const hazard = hazards.find(h => h.id === context.dataset.label);
+                                    return [
+                                        `Hazard: ${hazard.title}`,
+                                        `Severity: ${hazard.severity}`,
+                                        `Likelihood: ${hazard.likelihood}`,
+                                        `Controls: ${hazard.controls.join(', ')}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getRiskColor(riskScore) {
+            if (riskScore > 10) return 'rgba(231, 76, 60, 0.7)'; // Red
+            if (riskScore > 5) return 'rgba(241, 196, 15, 0.7)'; // Yellow
+            return 'rgba(46, 204, 113, 0.7)'; // Green
+        }
+
+        function exportToPDF() {
+            const doc = new jsPDF();
+            const elements = document.getElementById('content').children;
+            
+            doc.text('Global HSE Knowledge Base', 10, 10);
+            doc.text(`Version: ${hseData.metadata.version}`, 10, 20);
+            
+            let yPosition = 30;
+            
+            Array.from(elements).forEach(element => {
+                if (element.style.display !== 'none') {
+                    if (element.classList.contains('hazard-card')) {
+                        const title = element.querySelector('h3').textContent;
+                        const riskScore = element.querySelector('.risk-score').textContent;
+                        const controls = element.querySelectorAll('p')[0].textContent;
+                        
+                        doc.text(`${title} - ${riskScore}`, 10, yPosition);
+                        doc.text(controls, 10, yPosition + 10);
+                        yPosition += 20;
+                    } else {
+                        // For other elements, use html2canvas
+                        html2canvas(element).then(canvas => {
+                            const imgData = canvas.toDataURL('image/png');
+                            doc.addImage(imgData, 'PNG', 10, yPosition);
+                            yPosition += canvas.height / 2;
+                        });
+                    }
+                }
+            });
+            
+            doc.save('hse-knowledge-base.pdf');
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Regulations CSV
+            csvContent += "Region,Country,Standard ID,Standard Title,URL\n";
+            for (const [regionName, regionData] of Object.entries(hseData.regulations)) {
+                for (const [countryName, countryData] of Object.entries(regionData)) {
+                    countryData.standards.forEach(standard => {
+                        csvContent += `"${formatTitle(regionName)}","${formatTitle(countryName)}","${standard.id}","${standard.title}","${standard.url || ''}"\n`;
+                    });
+                }
+            }
+            
+            // Hazards CSV
+            csvContent += "\nHazard ID,Hazard Title,Severity,Likelihood,Risk Score,Controls\n";
+            hseData.hazard_library.forEach(hazard => {
+                csvContent += `"${hazard.id}","${hazard.title}",${hazard.severity},${hazard.likelihood},${hazard.severity * hazard.likelihood},"${hazard.controls.join('; ')}"\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "hse-knowledge-base.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function submitFeedback() {
+            const feedbackText = document.getElementById('feedback-text').value;
+            if (!feedbackText.trim()) {
+                alert('Please enter your feedback');
+                return;
+            }
+            
+            // In a real implementation, you would send this to a server
+            console.log('Feedback submitted:', feedbackText);
+            alert('Thank you for your feedback!');
+            document.getElementById('feedback-form').style.display = 'none';
+            document.getElementById('feedback-text').value = '';
+        }
+
+        function formatTitle(str) {
+            return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
     </script>
 </body>
