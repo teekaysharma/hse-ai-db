@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "metadata": {
+    "title": "Global HSE Knowledge Base",
+    "version": "2023.12",
+    "update_policy": "Manual quarterly review"
+  },
+
+  "regulations": {
+    "Americas": {
+      "USA": {
+        "OSHA": {
+          "source": "https://www.osha.gov/laws-regs",
+          "standards": [
+            {
+              "id": "1910.1200",
+              "title": "Hazard Communication",
+              "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.1200"
+            },
+            {
+              "id": "1926.501",
+              "title": "Fall Protection (Construction)",
+              "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.501"
+            }
+          ]
+        },
+        "EPA": {
+          "source": "https://www.epa.gov/laws-regulations",
+          "key_regulations": [
+            {
+              "id": "40 CFR 68",
+              "title": "Risk Management Program",
+              "url": "https://www.ecfr.gov/current/title-40/chapter-I/subchapter-C/part-68"
+            }
+          ]
+        }
+      },
+      "Canada": {
+        "CCOHS": {
+          "source": "https://www.ccohs.ca/oshanswers/legisl/",
+          "key_acts": [
+            {
+              "id": "Canada Labour Code II",
+              "title": "Occupational Health & Safety"
+            }
+          ]
+        }
+      }
+    },
+
+    "Europe": {
+      "UK": {
+        "HSE": {
+          "source": "https://www.hse.gov.uk/legislation/",
+          "key_documents": [
+            {
+              "id": "HSG65",
+              "title": "Managing for Health and Safety",
+              "url": "https://www.hse.gov.uk/pubns/books/hsg65.htm"
+            }
+          ]
+        }
+      },
+      "EU": {
+        "source": "https://osha.europa.eu/en/eu-legislation",
+        "directives": [
+          {
+            "id": "2006/42/EC",
+            "title": "Machinery Directive",
+            "url": "https://eur-lex.europa.eu/eli/dir/2006/42/oj"
+          }
+        ]
+      }
+    },
+
+    "Middle_East": {
+      "UAE": {
+        "ADNOC": {
+          "source": "https://www.adnoc.ae/en/sustainability/hse",
+          "standards": [
+            {
+              "id": "COPV3",
+              "title": "Lifting Operations",
+              "manual_ref": "Contact ADNOC HSE Dept"
+            }
+          ]
+        }
+      },
+      "Saudi_Arabia": {
+        "ARAMCO": {
+          "source": "https://www.aramco.com/en/sustainability/environment",
+          "standards": [
+            {
+              "id": "SAEP-1141",
+              "title": "Confined Space Entry",
+              "manual_ref": "Available to contractors"
+            }
+          ]
+        }
+      }
+    },
+
+    "Asia": {
+      "India": {
+        "Factories_Act": {
+          "source": "https://labour.gov.in/factories-act-1948",
+          "key_sections": [
+            {
+              "id": "Section 11B",
+              "title": "Hazardous Process Regulations"
+            }
+          ]
+        }
+      },
+      "Singapore": {
+        "WSH_Act": {
+          "source": "https://www.mom.gov.sg/workplace-safety-and-health",
+          "key_provisions": [
+            {
+              "id": "Regulation 12",
+              "title": "Noise Control"
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "hazard_library": [
+    {
+      "id": "HZ-ELEC-001",
+      "title": "Exposed Live Wires",
+      "category": "electrical",
+      "controls": ["LOTO", "Insulated Tools", "Permit-to-Work"],
+      "severity": 5,
+      "likelihood": 3,
+      "references": ["OSHA 1910.147", "IEC 61140"]
+    },
+    {
+      "id": "HZ-CHEM-002",
+      "title": "Chemical Splash",
+      "category": "chemical",
+      "controls": ["PPE", "SDS Access", "Eye Wash Stations"],
+      "severity": 4,
+      "likelihood": 2,
+      "references": ["OSHA 1910.1200", "GHS Rev.9"]
+    }
+  ],
+
+  "maintenance_log": [
+    {
+      "date": "2023-12-01",
+      "updated_by": "Admin",
+      "changes": "Added Middle East and Asia regions"
+    }
+  ]
+}
