@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "required": ["authority", "standards"],
+  "properties": {
+    "authority": {"type": "string"},
+    "standards": {
+      "type": "array",
+      "items": {
+        "required": ["id", "title"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"}
+        }
+      }
+    }
+  }
+}
