@@ -1,1 +1,10 @@
-
+{
+  "authority": "OSHA",
+  "standards": [
+    {
+      "id": "1910.1200",
+      "title": "Hazard Communication",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.1200"
+    }
+  ]
+}
