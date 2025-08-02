@@ -1,16 +1,74 @@
-name: Validate JSON
+name: Validate All JSON Files
 on: [push, pull_request]
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Schema
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          
+      - name: Install dependencies
         run: |
           pip install jsonschema
+          pip install pyyaml  # For optional YAML validation
+
+      - name: Validate Regulations
+        run: |
+          echo "Validating all JSON files..."
           python -c "
-          import json, jsonschema
-          schema = json.load(open('data/schemas/regulation.schema.json'))
-          data = json.load(open('data/regulations/usa/osha.json'))
-          jsonschema.validate(data, schema)
+          import glob, json, jsonschema, sys
+          
+          # Load schema
+          try:
+              schema = json.load(open('data/schemas/regulation.schema.json'))
+          except Exception as e:
+              print(f'❌ Schema load failed: {str(e)}')
+              sys.exit(1)
+          
+          # Check all JSON files
+          failed = False
+          for json_file in glob.glob('data/**/*.json', recursive=True):
+              try:
+                  data = json.load(open(json_file))
+                  jsonschema.validate(instance=data, schema=schema)
+                  print(f'✅ {json_file} passed validation')
+              except jsonschema.ValidationError as ve:
+                  print(f'❌ {json_file} failed:\n{ve.message}')
+                  failed = True
+              except json.JSONDecodeError as je:
+                  print(f'❌ {json_file} invalid JSON:\n{str(je)}')
+                  failed = True
+          
+          if failed:
+              sys.exit(1)
+          "
+
+      - name: Verify Hazard Files
+        if: always()  # Runs even if previous step fails
+        run: |
+          echo "Checking for required hazard fields..."
+          python -c "
+          required_hazard_fields = ['id', 'controls', 'severity']
+          import glob, json, sys
+          
+          failed = False
+          for hazard_file in glob.glob('data/hazards/*.json'):
+              try:
+                  data = json.load(open(hazard_file))
+                  if not all(field in data[0] for field in required_hazard_fields):
+                      print(f'❌ {hazard_file} missing required fields')
+                      failed = True
+                  else:
+                      print(f'✅ {hazard_file} has all required fields')
+              except Exception as e:
+                  print(f'❌ {hazard_file} error: {str(e)}')
+                  failed = True
+          
+          if failed:
+              sys.exit(1)
           "
