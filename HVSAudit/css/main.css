@@ -1,0 +1,101 @@
+/* Base Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f5f5f5;
+}
+
+/* Warning Message */
+.warning-message {
+    color: red;
+    background: #fff3cd;
+    padding: 10px;
+    margin: 0 0 20px 0;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #ffc107;
+    position: absolute;
+    z-index: 1000;
+    display: none;
+}
+
+/* Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    text-transform: uppercase;
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn-primary { background: #2c5aa0; color: white; }
+.btn-success { background: #28a745; color: white; }
+.btn-info { background: #17a2b8; color: white; }
+.btn-danger { background: #dc3545; color: white; }
+.btn:hover { opacity: 0.9; }
+
+/* Audit Tables */
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.audit-table th {
+    background: #f8f9fa;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+    font-size: 12px;
+}
+
+.audit-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    font-size: 13px;
+}
+
+/* Column Widths */
+.col-question { width: 40%; min-width: 350px; }
+.col-compliance { width: 12%; min-width: 80px; }
+.col-photo { width: 12%; min-width: 100px; }
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+    .col-compliance { width: 10% !important; }
+}
+
+@media (max-width: 992px) {
+    .audit-table th:nth-child(1),
+    .audit-table td:nth-child(1) {
+        width: 35% !important;
+    }
+}
