@@ -1,0 +1,30 @@
+name: Build HVSAudit Package
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'HVSAudit/**'  # Only trigger when HVSAudit files change
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Generate timestamp
+      id: timestamp
+      run: echo "time=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      
+    - name: Create ZIP
+      run: |
+        mkdir -p dist
+        cd HVSAudit
+        zip -r "../dist/HVSAudit-${{ steps.timestamp.outputs.time }}.zip" *
+        
+    - uses: actions/upload-artifact@v3
+      with:
+        name: hvsaudit-standalone
+        path: dist/
+        retention-days: 5
